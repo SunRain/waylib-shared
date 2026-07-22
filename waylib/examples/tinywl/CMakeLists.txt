@@ -29,7 +29,7 @@ add_executable(${TARGET}
 qt_add_qml_module(${TARGET}
     URI Tinywl
     VERSION "2.0"
-    IMPORTS WaylibShared.QuickSharedServer/1.0
+    IMPORTS WaylibShared.QuickSharedServer
 
     SOURCES helper.h helper.cpp
     SOURCES surfacewrapper.h surfacewrapper.cpp
