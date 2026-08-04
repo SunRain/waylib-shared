@@ -98,6 +98,7 @@ set(HAVE_LIBLIFTOFF_0_5 0)
 set(HAVE_XCB_ERRORS 0)
 set(HAVE_EGL 0)
 set(HAVE_EVENTFD 0)
+set(HAVE_LINUX_SYNC_FILE 0)
 set(HAVE_GBM_BO_GET_FD_FOR_PLANE 0)
 set(HAVE_LIBINPUT_BUSTYPE 0)
 set(HAVE_LIBINPUT_SWITCH_KEYPAD_SLIDE 0)
@@ -329,6 +330,10 @@ if(_have_eventfd)
     set(HAVE_EVENTFD 1)
 endif()
 
+check_include_file("linux/sync_file.h" _have_linux_sync_file)
+if(_have_linux_sync_file)
+    set(HAVE_LINUX_SYNC_FILE 1)
+endif()
 # ICONDIR (cursor theme search path)
 if(NOT DEFINED WLROOTS_ICONDIR OR WLROOTS_ICONDIR STREQUAL "")
     set(WLROOTS_ICONDIR "${CMAKE_INSTALL_FULL_DATADIR}/icons")
@@ -393,6 +398,7 @@ target_compile_definitions(waylib_wlroots_native_library
         WLR_USE_UNSTABLE
     PRIVATE
         _POSIX_C_SOURCE=200809L
+        HAVE_LINUX_SYNC_FILE=${HAVE_LINUX_SYNC_FILE}
         WLR_USE_UNSTABLE
         WLR_PRIVATE=
         WLR_LITTLE_ENDIAN=${WLR_LITTLE_ENDIAN}
