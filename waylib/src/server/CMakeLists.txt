@@ -341,6 +341,8 @@ set(HEADERS
 )
 
 set(PRIVATE_HEADERS
+    utils/wcontainerof.h
+    utils/WContainerOf
     platformplugin/qwlrootsintegration.h
     platformplugin/qwlrootscreen.h
     platformplugin/qwlrootswindow.h
