@@ -94,6 +94,14 @@ pkg_search_module(XKBCOMMON REQUIRED IMPORTED_TARGET xkbcommon)
 pkg_search_module(XCB REQUIRED IMPORTED_TARGET xcb)
 pkg_search_module(EGL REQUIRED IMPORTED_TARGET egl)
 
+set(WAYLIB_TREELAND_PROTOCOLS_DIR "$ENV{WAYLIB_TREELAND_PROTOCOLS_DIR}" CACHE PATH
+    "Directory containing the selected Treeland protocol XML files")
+if(NOT IS_ABSOLUTE "${WAYLIB_TREELAND_PROTOCOLS_DIR}"
+   OR NOT EXISTS "${WAYLIB_TREELAND_PROTOCOLS_DIR}/treeland-remote-subsurface-unstable-v1.xml")
+    message(FATAL_ERROR
+        "Set WAYLIB_TREELAND_PROTOCOLS_DIR to the selected protocol XML directory; system fallback is disabled")
+endif()
+
 add_compile_definitions(WLR_PRIVATE=)
 
 ws_generate(
@@ -174,6 +182,7 @@ set(SOURCES
     kernel/wevent.cpp
     kernel/wserver.cpp
     kernel/wsurface.cpp
+    kernel/wsubsurface.cpp
     kernel/wtoplevelsurface.cpp
     kernel/wwaylandresource.cpp
 
@@ -265,6 +274,7 @@ set(SOURCES
     protocols/wsessionlockmanager.cpp
     protocols/wsessionlock.cpp
     protocols/wsessionlocksurface.cpp
+    protocols/wremotesubsurfacemanagerv1.cpp
 )
 
 set(HEADERS
@@ -286,6 +296,7 @@ set(HEADERS
     kernel/wevent.h
     kernel/wserver.h
     kernel/wsurface.h
+    kernel/wsubsurface.h
     kernel/wtypes.h
     kernel/woutputlayout.h
     kernel/wxcursorimage.h
@@ -302,6 +313,7 @@ set(HEADERS
     kernel/WEvent
     kernel/WInputEvent
     kernel/WSurface
+    kernel/WSubsurface
 
     qtquick/wsurfaceitem.h
     qtquick/WSurfaceItem
@@ -360,6 +372,7 @@ set(HEADERS
     protocols/WInputPopupSurface
     protocols/wcursorshapemanagerv1.h
     protocols/WCursorShapeManagerV1
+    protocols/wremotesubsurfacemanagerv1.h
     protocols/woutputmanagerv1.h
     protocols/WOutputManagerV1
     protocols/wlayershell.h
@@ -389,6 +402,7 @@ set(PRIVATE_HEADERS
     kernel/private/wglobal_p.h
     kernel/private/wwaylandresource_p.h
     kernel/private/wsurface_p.h
+    kernel/private/wsubsurface_p.h
     kernel/private/wprivateaccessor_p.h
     qtquick/private/woutputviewport_p.h
     qtquick/private/wquickcoordmapper_p.h
@@ -422,6 +436,11 @@ endif()
 
 add_library(${TARGET} SHARED ${SOURCES})
 add_library(WaylibShared::SharedServer ALIAS ${TARGET})
+
+waylib_generate_qtwayland_server_protocol(${TARGET}
+    PROTOCOL ${WAYLIB_TREELAND_PROTOCOLS_DIR}/treeland-remote-subsurface-unstable-v1.xml
+    BASENAME treeland-remote-subsurface-unstable-v1
+)
 
 qt_add_qml_module(
     ${TARGET}
