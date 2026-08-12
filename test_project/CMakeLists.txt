@@ -17,6 +17,10 @@ if(NOT "PkgConfig::XCB" IN_LIST _waylibshared_interface_links)
   message(FATAL_ERROR
     "WaylibShared::SharedServer must propagate its public XCB dependency")
 endif()
+if(NOT "WaylibShared::waylib-wlroots" IN_LIST _waylibshared_interface_links)
+  message(FATAL_ERROR
+    "WaylibShared::SharedServer must propagate its native wlroots dependency")
+endif()
 unset(_waylibshared_interface_links)
 
 # Derive the installation prefix from the installed CMake package.
@@ -32,9 +36,6 @@ pkg_check_modules(
   IMPORTED_TARGET
   WaylibSharedServer
 )
-set(ENV{PKG_CONFIG_PATH} "${_waylibshared_original_pkg_config_path}")
-unset(_waylibshared_original_pkg_config_path)
-
 file(STRINGS
   "${_waylibshared_prefix}/lib/pkgconfig/WaylibSharedServer.pc"
   _waylibshared_pkgconfig_requires
@@ -48,23 +49,34 @@ unset(_waylibshared_pkgconfig_requires)
 
 foreach(_waylibshared_pkgconfig_name
         WaylibSharedServer
-        waylibshared-qwlroots)
-  file(STRINGS
-    "${_waylibshared_prefix}/lib/pkgconfig/${_waylibshared_pkgconfig_name}.pc"
+        waylib-wlroots)
+  pkg_get_variable(
+    _waylibshared_pkgconfig_dir
+    "${_waylibshared_pkgconfig_name}"
+    pcfiledir
+  )
+  if(NOT _waylibshared_pkgconfig_dir STREQUAL "${_waylibshared_prefix}/lib/pkgconfig")
+    message(FATAL_ERROR
+      "${_waylibshared_pkgconfig_name} must come from the candidate installation")
+  endif()
+  execute_process(
+    COMMAND "${PKG_CONFIG_EXECUTABLE}" --libs-only-L "${_waylibshared_pkgconfig_name}"
+    OUTPUT_VARIABLE _waylibshared_pkgconfig_libs
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+  separate_arguments(
     _waylibshared_pkgconfig_libs
-    REGEX "^Libs:"
+    UNIX_COMMAND "${_waylibshared_pkgconfig_libs}"
   )
-  string(FIND
-    "${_waylibshared_pkgconfig_libs}"
-    "-L${_waylibshared_prefix}/lib"
-    _waylibshared_pkgconfig_libdir_index
-  )
-  if(_waylibshared_pkgconfig_libdir_index EQUAL -1)
+  if(NOT "-L${_waylibshared_prefix}/lib" IN_LIST _waylibshared_pkgconfig_libs)
     message(FATAL_ERROR
       "${_waylibshared_pkgconfig_name}.pc must expose its non-system library directory")
   endif()
 endforeach()
-unset(_waylibshared_pkgconfig_libdir_index)
+set(ENV{PKG_CONFIG_PATH} "${_waylibshared_original_pkg_config_path}")
+unset(_waylibshared_original_pkg_config_path)
+unset(_waylibshared_pkgconfig_dir)
 unset(_waylibshared_pkgconfig_libs)
 unset(_waylibshared_pkgconfig_name)
 
