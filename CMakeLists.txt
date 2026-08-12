@@ -40,10 +40,8 @@ set(LOCAL_QML_IMPORT_PATH "${PROJECT_BINARY_DIR}/qt/qml")
 add_subdirectory(wlroots)
 
 if(WITH_SUBMODULE_WAYLIB)
-  set(WITH_SUBMODULE_QWLROOTS ON)
   # 传递BUILD_SHARED_LIBS选项给waylib子模块
   set(BUILD_SHARED_LIBS_WAYLIB ${BUILD_SHARED_LIBS})
-  set(BUILD_SHARED_QWLROOTS_LIBS OFF)
   add_subdirectory(waylib)
   list(APPEND LOCAL_QML_IMPORT_PATH "${PROJECT_BINARY_DIR}/waylib/src/server")
 

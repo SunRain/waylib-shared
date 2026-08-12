@@ -22,6 +22,11 @@ set(WLR_NATIVE_VERSION_MAJOR 0)
 set(WLR_NATIVE_VERSION_MINOR 19)
 set(WLR_NATIVE_VERSION_PATCH 3)
 
+set(WLROOTS_VERSION ${WLR_NATIVE_VERSION} CACHE INTERNAL "wlroots version")
+set(WLROOTS_VERSION_MAJOR ${WLR_NATIVE_VERSION_MAJOR} CACHE INTERNAL "wlroots version_major")
+set(WLROOTS_VERSION_MINOR ${WLR_NATIVE_VERSION_MINOR} CACHE INTERNAL "wlroots version_minor")
+set(WLROOTS_VERSION_PATCH ${WLR_NATIVE_VERSION_PATCH} CACHE INTERNAL "wlroots version_patch")
+
 # ---------------------------------------------------------------------------
 # Feature options (defaults ON; soft options may auto-disable)
 # ---------------------------------------------------------------------------
@@ -356,7 +361,8 @@ add_library(waylib_wlroots_native_library SHARED)
 add_library(Wlroots::wlroots ALIAS waylib_wlroots_native_library)
 
 set_target_properties(waylib_wlroots_native_library PROPERTIES
-    OUTPUT_NAME wlroots-0.19
+    OUTPUT_NAME waylib-wlroots
+    EXPORT_NAME waylib-wlroots
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON
@@ -374,6 +380,8 @@ target_include_directories(waylib_wlroots_native_library
     SYSTEM PUBLIC
         $<BUILD_INTERFACE:${WLROOTS_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${WLR_GENERATED_INCLUDE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/protocol>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${WLROOTS_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -429,16 +437,54 @@ set_target_properties(waylib_wlroots_native_library PROPERTIES
 )
 
 # ---------------------------------------------------------------------------
-# Install library only (no headers, no .pc)
+# Install native library, public headers and package metadata
 # ---------------------------------------------------------------------------
 install(TARGETS waylib_wlroots_native_library
+    EXPORT WaylibSharedServerTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+# Install the wlroots headers so consumers of the exported
+# WaylibShared::waylib-wlroots target can compile against them.
+install(DIRECTORY ${WLROOTS_SOURCE_DIR}/include/wlr
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${WLR_GENERATED_INCLUDE_DIR}/wlr
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# Flat protocol headers (e.g. cursor-shape-v1-protocol.h) are included
+# without a directory prefix.
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.h")
+# wlroots' own private protocol headers (drm-client-protocol.h etc.)
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wlr
+        FILES_MATCHING PATTERN "*.h")
+
 # ---------------------------------------------------------------------------
-# Export version / feature vars for qwlroots (lowercase true/false)
+# pkg-config metadata for installed-library consumers (e.g. a standalone
+# Waylib build). Carries version and feature flags as pkg-config variables
+# so the consumer can regenerate its wconfig.h without running this scaffold.
+# ---------------------------------------------------------------------------
+set(WAYLIB_WLROOTS_PC_REQUIRES "wayland-server libdrm xkbcommon pixman-1")
+set(WAYLIB_WLROOTS_PC_FEATURES "")
+foreach(_feature IN ITEMS DRM_BACKEND X11_BACKEND LIBINPUT_BACKEND XWAYLAND
+                        GLES2_RENDERER VULKAN_RENDERER GBM_ALLOCATOR SESSION
+                        COLOR_MANAGEMENT UDMABUF_ALLOCATOR)
+    if(WLR_HAS_${_feature})
+        list(APPEND WAYLIB_WLROOTS_PC_FEATURES "${_feature}")
+    endif()
+endforeach()
+string(REPLACE ";" " " WAYLIB_WLROOTS_PC_FEATURES "${WAYLIB_WLROOTS_PC_FEATURES}")
+set(WAYLIB_WLROOTS_PC_VERSION ${WLROOTS_VERSION})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/waylib-wlroots.pc.in
+               ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+# ---------------------------------------------------------------------------
+# Export native version / feature vars for Waylib (lowercase true/false)
 # ---------------------------------------------------------------------------
 macro(wlr_export_bool _name _value01)
     if(${_value01})
@@ -459,7 +505,6 @@ wlr_export_bool(WLR_HAVE_SESSION ${WLR_HAS_SESSION})
 wlr_export_bool(WLR_HAVE_COLOR_MANAGEMENT ${WLR_HAS_COLOR_MANAGEMENT})
 wlr_export_bool(WLR_HAVE_UDMABUF_ALLOCATOR ${WLR_HAS_UDMABUF_ALLOCATOR})
 
-# qwlroots 从本次生成的 pkg-config 元数据读取版本与能力，不覆盖其公共变量。
 message(STATUS "waylib_wlroots_native_library ${WLR_NATIVE_VERSION}: "
     "drm=${WLR_HAVE_DRM_BACKEND} libinput=${WLR_HAVE_LIBINPUT_BACKEND} "
     "x11=${WLR_HAVE_X11_BACKEND} gles2=${WLR_HAVE_GLES2_RENDERER} "
@@ -467,25 +512,3 @@ message(STATUS "waylib_wlroots_native_library ${WLR_NATIVE_VERSION}: "
     "udmabuf=${WLR_HAVE_UDMABUF_ALLOCATOR} session=${WLR_HAVE_SESSION} "
     "xwayland=${WLR_HAVE_XWAYLAND} color=${WLR_HAVE_COLOR_MANAGEMENT} "
     "liftoff=${HAVE_LIBLIFTOFF} xcb-errors=${HAVE_XCB_ERRORS}")
-
-# 保持既有 PkgConfig::WLROOTS 公共依赖；元数据和链接均绑定当前 R。
-set(_wlroots_pc_dir "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
-file(MAKE_DIRECTORY "${_wlroots_pc_dir}")
-set(_wlroots_pc "prefix=${CMAKE_CURRENT_BINARY_DIR}\n")
-foreach(_feature IN ITEMS DRM_BACKEND LIBINPUT_BACKEND X11_BACKEND GLES2_RENDERER
-        VULKAN_RENDERER GBM_ALLOCATOR UDMABUF_ALLOCATOR XWAYLAND SESSION COLOR_MANAGEMENT)
-    string(TOLOWER "${_feature}" _feature_lower)
-    string(APPEND _wlroots_pc "have_${_feature_lower}=${WLR_HAVE_${_feature}}\n")
-endforeach()
-string(APPEND _wlroots_pc "Name: wlroots-0.19\nDescription: Local wlroots library\n"
-    "Version: ${WLR_NATIVE_VERSION}\nLibs: -L${CMAKE_CURRENT_BINARY_DIR} -lwlroots-0.19\n"
-    "Cflags: -I${WLROOTS_SOURCE_DIR}/include -I${WLR_GENERATED_INCLUDE_DIR}\n")
-file(WRITE "${_wlroots_pc_dir}/wlroots-0.19.pc" "${_wlroots_pc}")
-set(ENV{PKG_CONFIG_PATH} "${_wlroots_pc_dir}:$ENV{PKG_CONFIG_PATH}")
-pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET GLOBAL wlroots-0.19>=0.19.0)
-pkg_get_variable(_wlroots_pc_actual wlroots-0.19 pcfiledir)
-if(NOT _wlroots_pc_actual STREQUAL _wlroots_pc_dir)
-    message(FATAL_ERROR "wlroots metadata does not belong to the current wrapper build")
-endif()
-set_property(TARGET PkgConfig::WLROOTS PROPERTY
-    INTERFACE_LINK_LIBRARIES waylib_wlroots_native_library)
