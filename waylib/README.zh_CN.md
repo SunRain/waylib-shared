@@ -55,9 +55,11 @@ NixOS
 步骤三：运行以下命令
 
 ```bash
-cmake -B build -DWITH_SUBMODULE_QWLROOTS=ON
+cmake -B build -DWAYLIB_TREELAND_PROTOCOLS_DIR=/absolute/path/to/DeckShell/protocols/compositor/xml
 cmake --build build
 ```
+
+`WAYLIB_TREELAND_PROTOCOLS_DIR` 必须指定与本版本匹配的协议 XML 目录。打包时也可显式设置同名环境变量；不自动查找系统协议安装。
 
 ## 贡献指南
 

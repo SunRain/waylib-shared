@@ -484,7 +484,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 # ---------------------------------------------------------------------------
-# Export native version / feature vars for Waylib (lowercase true/false)
+# Export version / feature vars for waylib (lowercase true/false)
 # ---------------------------------------------------------------------------
 macro(wlr_export_bool _name _value01)
     if(${_value01})
