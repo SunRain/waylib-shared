@@ -55,9 +55,11 @@ You can also packaging by using the command "nix build -v -L".
 Step 3: Execute the following commands
 
 ```bash
-cmake -B build -DWITH_SUBMODULE_QWLROOTS=ON
+cmake -B build -DWAYLIB_TREELAND_PROTOCOLS_DIR=/absolute/path/to/DeckShell/protocols/compositor/xml
 cmake --build build
 ```
+
+`WAYLIB_TREELAND_PROTOCOLS_DIR` must select the matching protocol XML directory. An explicit environment variable of the same name is also accepted for packaging; system protocol lookup is disabled.
 
 ## How to Contribute
 
