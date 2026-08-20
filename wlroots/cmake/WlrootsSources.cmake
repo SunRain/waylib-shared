@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 # Source list collection for waylib-wlroots.
-# Mirrors wlroots 0.19.3 meson.build file lists (static + conditionals).
+# Mirrors wlroots 0.20.2 meson.build file lists (static + conditionals).
 # Source paths are under WLROOTS_SOURCE_DIR (3rdparty/wlroots).
 
 # ------------------------------------------------------------------
@@ -13,9 +13,11 @@ set(_util_sources
     util/array.c
     util/box.c
     util/env.c
+    util/fd.c
     util/global.c
     util/log.c
     util/matrix.c
+    util/mem.c
     util/rect_union.c
     util/region.c
     util/set.c
@@ -24,6 +26,7 @@ set(_util_sources
     util/token.c
     util/transform.c
     util/utf8.c
+    util/version.c
 )
 
 # ------------------------------------------------------------------
@@ -44,6 +47,8 @@ set(_types_sources
     types/data_device/wlr_drag.c
     types/ext_image_capture_source_v1/base.c
     types/ext_image_capture_source_v1/output.c
+    types/ext_image_capture_source_v1/foreign_toplevel.c
+    types/ext_image_capture_source_v1/scene.c
     types/output/cursor.c
     types/output/output.c
     types/output/render.c
@@ -76,6 +81,7 @@ set(_types_sources
     types/buffer/resource.c
     types/wlr_alpha_modifier_v1.c
     types/wlr_color_management_v1.c
+    types/wlr_color_representation_v1.c
     types/wlr_compositor.c
     types/wlr_content_type_v1.c
     types/wlr_cursor_shape_v1.c
@@ -88,6 +94,8 @@ set(_types_sources
     types/wlr_ext_image_copy_capture_v1.c
     types/wlr_ext_foreign_toplevel_list_v1.c
     types/wlr_ext_data_control_v1.c
+    types/wlr_ext_workspace_v1.c
+    types/wlr_fixes.c
     types/wlr_fractional_scale_v1.c
     types/wlr_gamma_control_v1.c
     types/wlr_idle_inhibit_v1.c
@@ -140,6 +148,7 @@ set(_types_sources
     types/wlr_xdg_output_v1.c
     types/wlr_xdg_system_bell_v1.c
     types/wlr_xdg_toplevel_icon_v1.c
+    types/wlr_xdg_toplevel_tag_v1.c
 )
 if(WLR_HAS_DRM_BACKEND)
     list(APPEND _types_sources types/wlr_drm_lease_v1.c)
@@ -210,6 +219,7 @@ set(_render_sources
     render/color.c
     render/dmabuf.c
     render/drm_format_set.c
+    render/drm_syncobj_merger.c
     render/drm_syncobj.c
     render/pass.c
     render/pixel_format.c
