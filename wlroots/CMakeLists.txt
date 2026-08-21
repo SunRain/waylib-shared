@@ -445,28 +445,35 @@ set_target_properties(waylib_wlroots_native_library PROPERTIES
 # ---------------------------------------------------------------------------
 # Install native library, public headers and package metadata
 # ---------------------------------------------------------------------------
-install(TARGETS waylib_wlroots_native_library
-    EXPORT WaylibSharedServerTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+if(NOT TREELAND_INSTALL_DEV)
+    install(TARGETS waylib_wlroots_native_library
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_SKIP)
+endif()
 
-# Install the wlroots headers so consumers of the exported
-# WaylibShared::waylib-wlroots target can compile against them.
-install(DIRECTORY ${WLROOTS_SOURCE_DIR}/include/wlr
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(DIRECTORY ${WLR_GENERATED_INCLUDE_DIR}/wlr
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-# Flat protocol headers (e.g. cursor-shape-v1-protocol.h) are included
-# without a directory prefix.
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN "*.h")
-# wlroots' own private protocol headers (drm-client-protocol.h etc.)
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wlr
-        FILES_MATCHING PATTERN "*.h")
+if(TREELAND_INSTALL_DEV)
+    install(TARGETS waylib_wlroots_native_library
+        EXPORT WaylibSharedServerTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_COMPONENT Development
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+
+    # Install the wlroots headers so consumers of the exported
+    # WaylibShared::waylib-wlroots target can compile against them.
+    install(DIRECTORY ${WLROOTS_SOURCE_DIR}/include/wlr
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(DIRECTORY ${WLR_GENERATED_INCLUDE_DIR}/wlr
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    # Flat protocol headers (e.g. cursor-shape-v1-protocol.h) are included
+    # without a directory prefix.
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            FILES_MATCHING PATTERN "*.h")
+    # wlroots' own private protocol headers (drm-client-protocol.h etc.)
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wlr
+            FILES_MATCHING PATTERN "*.h")
+endif()
 
 # ---------------------------------------------------------------------------
 # pkg-config metadata for installed-library consumers (e.g. a standalone
@@ -486,8 +493,10 @@ string(REPLACE ";" " " WAYLIB_WLROOTS_PC_FEATURES "${WAYLIB_WLROOTS_PC_FEATURES}
 set(WAYLIB_WLROOTS_PC_VERSION ${WLROOTS_VERSION})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/waylib-wlroots.pc.in
                ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+if(TREELAND_INSTALL_DEV)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
 
 # ---------------------------------------------------------------------------
 # Export version / feature vars for waylib (lowercase true/false)

@@ -526,39 +526,10 @@ target_link_directories(${TARGET}
 )
 
 
-install(
-  TARGETS ${TARGET}
-  EXPORT WaylibSharedServerTargets
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  PUBLIC_HEADER COMPONENT Development DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR})
-
-# Generated config header (wconfig.h) is part of the public API surface
-# (included by wglobal.h) and must ship with the installed headers.
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wconfig.h
-        DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR}
-)
-
-# Public headers use Q_MOC_INCLUDE/Q_PRIVATE_SLOT referencing kernel
-# private headers (e.g. wserver.h -> private/wserver_p.h), and Treeland
-# consumes kernel private API (e.g. WToplevelSurfacePrivate); install the
-# private dependencies so installed consumers can compile and moc.
-# WSurfaceHandler no longer exists; its orphaned implementation header is not an API.
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/kernel/private
-        DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR}
-        FILES_MATCHING PATTERN "*.h"
-        PATTERN "wsurfacehandler_p.h" EXCLUDE)
-
-# Install QML module generated targets separately to avoid dependency issues
-# This works around the Qt CMake QML module export issue
-get_directory_property(all_targets BUILDSYSTEM_TARGETS)
-foreach(target_name ${all_targets})
-    if(target_name MATCHES "^${TARGET}_resources_")
-        install(TARGETS ${target_name}
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
-    endif()
-endforeach()
+if(NOT TREELAND_INSTALL_DEV)
+    install(TARGETS ${TARGET}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_SKIP)
+endif()
 
 # Install QML module files manually since qt_add_qml_module INSTALL_LOCATION is ignored
 message(STATUS "WaylibShared QML module will be installed to ${WAYLIB_QML_INSTALL_DIR}/WaylibShared/QuickSharedServer")
@@ -572,35 +543,71 @@ install(
   PATTERN "*.dll"
   PATTERN "*.dylib")
 
-configure_package_config_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/WaylibServerConfig.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfig.cmake"
-  INSTALL_DESTINATION ${WAYLIB_CMAKE_INSTALL_DIR})
+if(TREELAND_INSTALL_DEV)
+    install(
+      TARGETS ${TARGET}
+      EXPORT WaylibSharedServerTargets
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_COMPONENT Development
+      PUBLIC_HEADER COMPONENT Development DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR})
 
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfigVersion.cmake"
-  VERSION ${PROJECT_VERSION}
-  COMPATIBILITY SameMinorVersion)
+    # Generated config header (wconfig.h) is part of the public API surface
+    # (included by wglobal.h) and must ship with the installed headers.
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wconfig.h
+            DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR}
+    )
 
-# 导出构建目录中的配置文件，以便子模块使用
-export(
-  EXPORT WaylibSharedServerTargets
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerTargets.cmake"
-  NAMESPACE WaylibShared::)
+    # Public headers use Q_MOC_INCLUDE/Q_PRIVATE_SLOT referencing kernel
+    # private headers (e.g. wserver.h -> private/wserver_p.h), and Treeland
+    # consumes kernel private API (e.g. WToplevelSurfacePrivate); install the
+    # private dependencies so installed consumers can compile and moc.
+    # WSurfaceHandler no longer exists; its orphaned implementation header is not an API.
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/kernel/private
+            DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR}
+            FILES_MATCHING PATTERN "*.h"
+            PATTERN "wsurfacehandler_p.h" EXCLUDE)
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfig.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfigVersion.cmake
-        DESTINATION ${WAYLIB_CMAKE_INSTALL_DIR})
+    # Install QML module generated targets separately to avoid dependency issues
+    # This works around the Qt CMake QML module export issue
+    get_directory_property(all_targets BUILDSYSTEM_TARGETS)
+    foreach(target_name ${all_targets})
+        if(target_name MATCHES "^${TARGET}_resources_")
+            install(TARGETS ${target_name}
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            )
+        endif()
+    endforeach()
 
-install(
-  EXPORT WaylibSharedServerTargets
-  FILE WaylibSharedServerTargets.cmake
-  DESTINATION ${WAYLIB_CMAKE_INSTALL_DIR}
-  NAMESPACE WaylibShared::)
+    configure_package_config_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/WaylibServerConfig.cmake.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfig.cmake"
+      INSTALL_DESTINATION ${WAYLIB_CMAKE_INSTALL_DIR})
 
-include(${PROJECT_SOURCE_DIR}/cmake/Helpers.cmake)
-add_pkgconfig_module(
-  ${TARGET}
-  ${TARGET}
-  "${CMAKE_INSTALL_FULL_INCLUDEDIR}/waylibshared/waylibserver"
-  "waylib-wlroots, Qt6Gui, Qt6Quick, Qt6QmlIntegration, xcb")
+    write_basic_package_version_file(
+      "${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfigVersion.cmake"
+      VERSION ${PROJECT_VERSION}
+      COMPATIBILITY SameMinorVersion)
+
+    # 导出构建目录中的配置文件，以便子模块使用
+    export(
+      EXPORT WaylibSharedServerTargets
+      FILE "${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerTargets.cmake"
+      NAMESPACE WaylibShared::)
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfig.cmake
+                  ${CMAKE_CURRENT_BINARY_DIR}/WaylibSharedServerConfigVersion.cmake
+            DESTINATION ${WAYLIB_CMAKE_INSTALL_DIR})
+
+    install(
+      EXPORT WaylibSharedServerTargets
+      FILE WaylibSharedServerTargets.cmake
+      DESTINATION ${WAYLIB_CMAKE_INSTALL_DIR}
+      NAMESPACE WaylibShared::)
+
+    include(${PROJECT_SOURCE_DIR}/cmake/Helpers.cmake)
+    add_pkgconfig_module(
+      ${TARGET}
+      ${TARGET}
+      "${CMAKE_INSTALL_FULL_INCLUDEDIR}/waylibshared/waylibserver"
+      "waylib-wlroots, Qt6Gui, Qt6Quick, Qt6QmlIntegration, xcb")
+endif()

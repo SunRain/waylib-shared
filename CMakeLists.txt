@@ -37,6 +37,9 @@ endif()
 
 set(LOCAL_QML_IMPORT_PATH "${PROJECT_BINARY_DIR}/qt/qml")
 
+# 在 wlroots 和 Waylib 配置前确定 standalone 开发包默认值；父工程缓存值优先。
+option(TREELAND_INSTALL_DEV "Install development files (headers, CMake config, pkg-config, .so symlinks)" ON)
+
 add_subdirectory(wlroots)
 
 if(WITH_SUBMODULE_WAYLIB)
