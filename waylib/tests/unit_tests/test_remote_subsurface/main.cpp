@@ -36,6 +36,7 @@ private Q_SLOTS:
         QVERIFY(client.compositor);
         QVERIFY(client.manager);
         QCOMPARE(client.managerVersion, 1u);
+        QVERIFY(!client.sawLegacyManager);
     }
 
     void tokenAndRejection()

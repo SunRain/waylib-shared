@@ -38,8 +38,9 @@ struct Client
     wl_client *serverClient = nullptr;
     wl_registry *registry = nullptr;
     wl_compositor *compositor = nullptr;
-    treeland_subsurface_manager_v1 *manager = nullptr;
+    treeland_remote_subsurface_manager_v1 *manager = nullptr;
     uint32_t managerVersion = 0;
+    bool sawLegacyManager = false;
     QString error;
 };
 

@@ -24,9 +24,11 @@ void registryGlobal(void *data, wl_registry *registry, uint32_t name, const char
     if (std::strcmp(interface, "wl_compositor") == 0) {
         client->compositor = static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface, 4));
     } else if (std::strcmp(interface, "treeland_subsurface_manager_v1") == 0) {
+        client->sawLegacyManager = true;
+    } else if (std::strcmp(interface, "treeland_remote_subsurface_manager_v1") == 0) {
         client->managerVersion = version;
-        client->manager = static_cast<treeland_subsurface_manager_v1 *>(
-            wl_registry_bind(registry, name, &treeland_subsurface_manager_v1_interface, 1));
+        client->manager = static_cast<treeland_remote_subsurface_manager_v1 *>(
+            wl_registry_bind(registry, name, &treeland_remote_subsurface_manager_v1_interface, 1));
     }
 }
 
@@ -80,7 +82,7 @@ Client::Client(wl_display *server)
 Client::~Client()
 {
     if (manager)
-        treeland_subsurface_manager_v1_destroy(manager);
+        treeland_remote_subsurface_manager_v1_destroy(manager);
     if (compositor)
         wl_compositor_destroy(compositor);
     if (registry)
@@ -124,7 +126,7 @@ bool Client::roundtrip()
 void Client::exportSurface(Exported &result)
 {
     result.surface = wl_compositor_create_surface(compositor);
-    result.object = treeland_subsurface_manager_v1_export_surface(manager, result.surface);
+    result.object = treeland_remote_subsurface_manager_v1_export_surface(manager, result.surface);
     static const treeland_exported_surface_v1_listener listener = {surfaceToken, parentRejected};
     treeland_exported_surface_v1_add_listener(result.object, &listener, &result);
 }
