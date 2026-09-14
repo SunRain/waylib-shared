@@ -100,6 +100,7 @@ ws_generate(
 )
 
 include(cmake/WaylibSources.cmake)
+list(APPEND PRIVATE_HEADERS protocols/private/wsecuritycontextmanager_p.h)
 
 add_library(${TARGET} SHARED ${SOURCES})
 add_library(WaylibShared::SharedServer ALIAS ${TARGET})
