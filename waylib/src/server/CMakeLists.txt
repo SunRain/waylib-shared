@@ -99,7 +99,22 @@ ws_generate(
     xdg-shell-protocol
 )
 
+ws_generate(
+    server
+    wayland-protocols
+    staging/ext-background-effect/ext-background-effect-v1.xml
+    ext-background-effect-v1-protocol
+)
+
 include(cmake/WaylibSources.cmake)
+list(APPEND SOURCES
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/ext-background-effect-v1-protocol.c
+    wlroots_extra/wlr_ext_background_effect_v1.c
+)
+list(APPEND HEADERS
+    wlroots_extra/wlr_ext_background_effect_v1.h
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/ext-background-effect-v1-protocol.h
+)
 list(APPEND PRIVATE_HEADERS protocols/private/wsecuritycontextmanager_p.h)
 
 add_library(${TARGET} SHARED ${SOURCES})
@@ -187,6 +202,7 @@ target_include_directories(${TARGET}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/protocols>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/protocols/private>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/wlroots_extra>
         $<INSTALL_INTERFACE:${WAYLIB_INCLUDE_INSTALL_DIR}>
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
