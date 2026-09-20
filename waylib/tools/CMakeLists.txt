@@ -35,48 +35,13 @@ else()
     target_link_libraries(qtwaylandscanner_waylib Qt6::Core)
 endif()
 
-function(waylib_generate_qtwayland_server_protocol target)
-    # Parse arguments
-    set(options PRIVATE_CODE)
-    set(oneValueArgs PROTOCOL BASENAME PREFIX)
-    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "" ${ARGN})
+add_executable(WaylibShared::qtwaylandscanner ALIAS qtwaylandscanner_waylib)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/WaylibProtocolHelpers.cmake")
 
-    if(ARGS_UNPARSED_ARGUMENTS)
-        message(FATAL_ERROR "Unknown keywords given to waylib_generate_qtwayland_server_protocol(): \"${ARGS_UNPARSED_ARGUMENTS}\"")
-    endif()
-
-    set(_prefix "${ARGS_PREFIX}")
-
-    find_package(PkgConfig)
-    get_filename_component(_infile ${ARGS_PROTOCOL} ABSOLUTE)
-    pkg_get_variable(WAYLAND_SCANNER wayland-scanner wayland_scanner)
-    set(server_header "${CMAKE_CURRENT_BINARY_DIR}/wayland-${ARGS_BASENAME}-server-protocol.h")
-    set(server_code "${CMAKE_CURRENT_BINARY_DIR}/wayland-${ARGS_BASENAME}-server-protocol.c")
-    execute_process(COMMAND ${WAYLAND_SCANNER} "server-header" ${_infile} ${server_header})
-    execute_process(COMMAND ${WAYLAND_SCANNER} "private-code" ${_infile} ${server_code})
-
-    set(_header "${CMAKE_CURRENT_BINARY_DIR}/qwayland-server-${ARGS_BASENAME}.h")
-    set(_code "${CMAKE_CURRENT_BINARY_DIR}/qwayland-server-${ARGS_BASENAME}.cpp")
-
-    set_source_files_properties(${server_header} ${server_code} ${_header} ${_code} GENERATED)
-
-    add_custom_command(OUTPUT "${_header}"
-        COMMAND qtwaylandscanner_waylib server-header ${_infile} "" ${_prefix} > ${_header}
-        DEPENDS ${_infile} qtwaylandscanner_waylib VERBATIM)
-
-    add_custom_command(OUTPUT "${_code}"
-        COMMAND qtwaylandscanner_waylib server-code ${_infile} "" ${_prefix} > ${_code}
-        DEPENDS ${_infile} ${_header} qtwaylandscanner_waylib VERBATIM)
-
-    set_property(SOURCE ${_header} ${_code} PROPERTY SKIP_AUTOMOC ON)
-
-    target_sources(${target} PRIVATE "${server_code}" "${_code}")
-
-    set(_gen_target generate_protocols_${target}_${ARGS_BASENAME})
-
-    add_custom_target(${_gen_target} ALL
-        DEPENDS ${_header} ${_code}
-    )
-
-    add_dependencies(${target} ${_gen_target})
-endfunction()
+if(WAYLIB_INSTALL_ENABLED AND TREELAND_INSTALL_DEV AND NOT CMAKE_CROSSCOMPILING)
+    set_target_properties(qtwaylandscanner_waylib PROPERTIES EXPORT_NAME qtwaylandscanner)
+    install(TARGETS qtwaylandscanner_waylib EXPORT WaylibSharedServerTargets
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT Development)
+    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../cmake/WaylibProtocolHelpers.cmake"
+            DESTINATION "${WAYLIB_CMAKE_INSTALL_DIR}" COMPONENT Development)
+endif()

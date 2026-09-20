@@ -57,6 +57,7 @@ endif()
 # ---------------------------------------------------------------------------
 find_package(PkgConfig REQUIRED)
 include(GNUInstallDirs)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/WaylibInstallDirs.cmake")
 include(CheckIncludeFile)
 include(CheckSymbolExists)
 include(CheckCSourceCompiles)
@@ -364,6 +365,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/WlrootsSources.cmake")
 # ---------------------------------------------------------------------------
 add_library(waylib_wlroots_native_library SHARED)
 add_library(Wlroots::wlroots ALIAS waylib_wlroots_native_library)
+add_library(WaylibShared::waylib-wlroots ALIAS waylib_wlroots_native_library)
 
 set_target_properties(waylib_wlroots_native_library PROPERTIES
     OUTPUT_NAME waylib-wlroots
@@ -371,6 +373,8 @@ set_target_properties(waylib_wlroots_native_library PROPERTIES
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON
+    INSTALL_RPATH "$ORIGIN"
+    BUILD_RPATH_USE_ORIGIN ON
 )
 
 # Protocol / shader / pnpids codegen (Task 3).
@@ -442,61 +446,7 @@ set_target_properties(waylib_wlroots_native_library PROPERTIES
     LINK_DEPENDS "${WLROOTS_SOURCE_DIR}/wlroots.syms"
 )
 
-# ---------------------------------------------------------------------------
-# Install native library, public headers and package metadata
-# ---------------------------------------------------------------------------
-if(NOT TREELAND_INSTALL_DEV)
-    install(TARGETS waylib_wlroots_native_library
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_SKIP)
-endif()
-
-if(TREELAND_INSTALL_DEV)
-    install(TARGETS waylib_wlroots_native_library
-        EXPORT WaylibSharedServerTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} NAMELINK_COMPONENT Development
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-
-    # Install the wlroots headers so consumers of the exported
-    # WaylibShared::waylib-wlroots target can compile against them.
-    install(DIRECTORY ${WLROOTS_SOURCE_DIR}/include/wlr
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-    install(DIRECTORY ${WLR_GENERATED_INCLUDE_DIR}/wlr
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-    # Flat protocol headers (e.g. cursor-shape-v1-protocol.h) are included
-    # without a directory prefix.
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING PATTERN "*.h")
-    # wlroots' own private protocol headers (drm-client-protocol.h etc.)
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/protocol/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wlr
-            FILES_MATCHING PATTERN "*.h")
-endif()
-
-# ---------------------------------------------------------------------------
-# pkg-config metadata for installed-library consumers (e.g. a standalone
-# Waylib build). Carries version and feature flags as pkg-config variables
-# so the consumer can regenerate its wconfig.h without running this scaffold.
-# ---------------------------------------------------------------------------
-set(WAYLIB_WLROOTS_PC_REQUIRES "wayland-server libdrm xkbcommon pixman-1")
-set(WAYLIB_WLROOTS_PC_FEATURES "")
-foreach(_feature IN ITEMS DRM_BACKEND X11_BACKEND LIBINPUT_BACKEND XWAYLAND
-                        GLES2_RENDERER VULKAN_RENDERER GBM_ALLOCATOR SESSION
-                        COLOR_MANAGEMENT UDMABUF_ALLOCATOR)
-    if(WLR_HAS_${_feature})
-        list(APPEND WAYLIB_WLROOTS_PC_FEATURES "${_feature}")
-    endif()
-endforeach()
-string(REPLACE ";" " " WAYLIB_WLROOTS_PC_FEATURES "${WAYLIB_WLROOTS_PC_FEATURES}")
-set(WAYLIB_WLROOTS_PC_VERSION ${WLROOTS_VERSION})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/waylib-wlroots.pc.in
-               ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc @ONLY)
-if(TREELAND_INSTALL_DEV)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/waylib-wlroots.pc
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-endif()
+include(cmake/WlrootsInstall.cmake)
 
 # ---------------------------------------------------------------------------
 # Export version / feature vars for waylib (lowercase true/false)

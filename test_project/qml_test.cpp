@@ -1,62 +1,22 @@
-#include <QGuiApplication>
-#include <QQmlComponent>
-#include <QQmlEngine>
-
 #include <QCoreApplication>
 #include <QDeadlineTimer>
 #include <QDebug>
-#include <QStringList>
+#include <QGuiApplication>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QVariant>
 
-#ifndef WAYLIBSHARED_TEST_DEFAULT_QML_IMPORT_PATH
-#  define WAYLIBSHARED_TEST_DEFAULT_QML_IMPORT_PATH ""
-#endif
+#include <memory>
 
-static QStringList splitQmlImportPath(const QString &value)
+static bool createDynamicCreator(QQmlEngine &engine)
 {
-    if (value.isEmpty()) {
-        return {};
-    }
-
-#if defined(Q_OS_WIN)
-    const QChar sep(';');
-#else
-    const QChar sep(':');
-#endif
-
-    return value.split(sep, Qt::SkipEmptyParts);
-}
-
-int main(int argc, char **argv)
-{
-    // 允许 headless 环境运行（CI/容器）
-    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
-        qputenv("QT_QPA_PLATFORM", "offscreen");
-    }
-
-    QGuiApplication app(argc, argv);
-
-    QQmlEngine engine;
-
-    const auto envImportPath = qEnvironmentVariable("QML_IMPORT_PATH");
-    for (const auto &p : splitQmlImportPath(envImportPath)) {
-        engine.addImportPath(p);
-    }
-
-    const auto defaultImportPath =
-        QStringLiteral(WAYLIBSHARED_TEST_DEFAULT_QML_IMPORT_PATH);
-    if (!defaultImportPath.isEmpty()) {
-        engine.addImportPath(defaultImportPath);
-    }
-
     QQmlComponent component(&engine);
     component.setData(
         R"QML(
 import QtQuick
 import WaylibShared.QuickSharedServer
 
-Item {
-    DynamicCreator { }
-}
+DynamicCreator { objectName: "installed-dynamic-creator" }
 )QML",
         QUrl(QStringLiteral("waylibshared-test://qml-import-test.qml")));
 
@@ -65,21 +25,39 @@ Item {
         QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
     }
 
-    if (component.status() == QQmlComponent::Error) {
+    if (!component.isReady()) {
+        qCritical() << "QML component did not become ready; status:" << component.status();
         for (const auto &e : component.errors()) {
             qCritical().noquote() << e.toString();
         }
-        return 1;
+        return false;
     }
 
-    QObject *obj = component.create();
-    if (!obj) {
-        for (const auto &e : component.errors()) {
-            qCritical().noquote() << e.toString();
-        }
+    const std::unique_ptr<QObject> object(component.create());
+    if (!object) {
+        qCritical() << "DynamicCreator construction failed:" << component.errors();
+        return false;
+    }
+    const QVariant count = object->property("count");
+    return object->objectName() == QStringLiteral("installed-dynamic-creator") && count.isValid()
+        && count.toInt() == 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (qEnvironmentVariableIsEmpty("QML_IMPORT_PATH")) {
+        qCritical() << "Set QML_IMPORT_PATH to the candidate package's QML import directory";
+        return 2;
+    }
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+
+    QGuiApplication app(argc, argv);
+    QQmlEngine engine;
+    if (!createDynamicCreator(engine)) {
+        qCritical() << "The installed QML plugin did not create an empty DynamicCreator";
         return 1;
     }
-
-    delete obj;
+    qInfo() << "Pure Qt host loaded DynamicCreator with count=0 from the installed QML module";
     return 0;
 }

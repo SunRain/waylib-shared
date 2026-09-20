@@ -26,40 +26,11 @@ Based on the above features, compositor developers need only focus on the busine
 
 ## Building
 
-Step 1: Compiling and Installing wlroots
-
-waylib requires the development version (0.19) of wlroots, which needs to be [compiled and installed manually](https://gitlab.freedesktop.org/wlroots/wlroots#building). Arch Linux users can install [wlroots-0.19](https://archlinux.org/packages/extra/x86_64/wlroots0.19/).
-
-In this repository the wlroots source tree is vendored under `wlroots/` (upstream sources under `3rdparty/wlroots`) and built via CMake together with waylib, so no separate wlroots installation is required.
-
-Step 2: Installing other dependencies
-
-Debian
-
-````
-# apt install pkg-config qt6-base-private-dev qt6-base-dev-tools qt6-declarative-private-dev wayland-protocols libpixman-1-dev
-````
-
-Archlinux
-
-````
-# pacman -Syu --noconfirm qt6-base qt6-declarative cmake pkgconfig pixman wayland-protocols ninja
-````
-
-NixOS:
-
-It is recommended to manage dependencies using [nix-direnv](https://github.com/nix-community/nix-direnv), or you can use the command `nix develop` to enter the build environment.
-
-You can also packaging by using the command "nix build -v -L".
-
-Step 3: Execute the following commands
-
-```bash
-cmake -B build -DWAYLIB_TREELAND_PROTOCOLS_DIR=/absolute/path/to/DeckShell/protocols/compositor/xml
-cmake --build build
-```
-
-`WAYLIB_TREELAND_PROTOCOLS_DIR` must select the matching protocol XML directory. An explicit environment variable of the same name is also accepted for packaging; system protocol lookup is disabled.
+Build and install from the containing `waylib-shared` repository root. Its
+[build guide](../README.md) specifies the matching native wlroots submodule,
+bundled protocol XML, system dependencies, tests and consumer setup. No DeckShell
+protocol package or external XML path is needed.
+This directory implements the library; it is not a second packaging workflow.
 
 ## How to Contribute
 

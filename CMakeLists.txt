@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.25.0)
 
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" WAYLIB_VERSION LIMIT_COUNT 1)
 project(
   QuickWaylibServer
-  VERSION 0.7.0
+  VERSION ${WAYLIB_VERSION}
   LANGUAGES CXX C)
+
+set(WAYLIB_INSTALL_ENABLED ${PROJECT_IS_TOP_LEVEL})
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -11,13 +14,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Standard installation paths
-include(GNUInstallDirs)
+include(cmake/WaylibInstallDirs.cmake)
 # Macros
 include(FeatureSummary)
-
-option(WITH_SUBMODULE_WAYLIB "Use the waylib from git submodule" ON)
-add_feature_info(submodule_waylib WITH_SUBMODULE_WAYLIB
-                 "Use waylib from submodule")
 
 option(ADDRESS_SANITIZER "Enable address sanitizer" OFF)
 add_feature_info(ASanSupport ADDRESS_SANITIZER
@@ -35,30 +34,26 @@ endif()
 # NOTE: Qt keywords conflict with wlroots. but dtksystemsettings still uses it.
 # add_definitions("-DQT_NO_KEYWORDS")
 
-set(LOCAL_QML_IMPORT_PATH "${PROJECT_BINARY_DIR}/qt/qml")
-
 # 在 wlroots 和 Waylib 配置前确定 standalone 开发包默认值；父工程缓存值优先。
 option(TREELAND_INSTALL_DEV "Install development files (headers, CMake config, pkg-config, .so symlinks)" ON)
 
 add_subdirectory(wlroots)
+add_subdirectory(waylib)
 
-if(WITH_SUBMODULE_WAYLIB)
-  # 传递BUILD_SHARED_LIBS选项给waylib子模块
-  set(BUILD_SHARED_LIBS_WAYLIB ${BUILD_SHARED_LIBS})
-  add_subdirectory(waylib)
-  list(APPEND LOCAL_QML_IMPORT_PATH "${PROJECT_BINARY_DIR}/waylib/src/server")
-
-  # 设置 WaylibShared_DIR 以便父项目可以找到 WaylibShared
-  set(WaylibShared_DIR
-      "${CMAKE_CURRENT_BINARY_DIR}/waylib/src"
-      CACHE PATH "WaylibShared CMake config directory" FORCE)
-else()
-  find_package(WaylibShared REQUIRED COMPONENTS SharedServer)
+if(BUILD_WAYLIB_TESTS)
+  enable_testing()
 endif()
 
-set(QML_IMPORT_PATH
-    "${LOCAL_QML_IMPORT_PATH}"
-    CACHE STRING "For LSP" FORCE)
+# 内嵌开发和安装包使用同名目录合同，下游不推导 child 布局。
+set(WaylibShared_QML_IMPORT_DIR "${CMAKE_CURRENT_BINARY_DIR}/waylib/src/server")
+set(WaylibShared_LIBDIR "${CMAKE_CURRENT_BINARY_DIR}/waylib/src/server")
+set(WaylibShared_WLROOTS_PROTOCOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wlroots/protocol")
+set(WaylibShared_PKGCONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/waylib/src/server")
+if(NOT PROJECT_IS_TOP_LEVEL)
+  foreach(_directory QML_IMPORT_DIR LIBDIR WLROOTS_PROTOCOLS_DIR PKGCONFIG_DIR)
+    set(WaylibShared_${_directory} "${WaylibShared_${_directory}}" PARENT_SCOPE)
+  endforeach()
+endif()
 
 # Display feature summary
 feature_summary(WHAT ALL)

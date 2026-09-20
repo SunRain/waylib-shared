@@ -1,11 +1,12 @@
-prefix=${CMAKE_INSTALL_PREFIX}
-exec_prefix=${CMAKE_INSTALL_PREFIX}
-libdir=${CMAKE_INSTALL_FULL_LIBDIR}
-includedir=${include_dir}
+prefix=@WAYLIB_PC_PREFIX@
+exec_prefix=${prefix}
+libdir=@WAYLIB_PC_LIBDIR@
+includedir=@WAYLIB_PC_INCLUDEDIR@
+qmldir=@WAYLIB_PC_QMLDIR@
 
-Name: ${name}
-Description:
-Version: ${CMAKE_PROJECT_VERSION}
-Requires: ${depends}
-Libs: -L${CMAKE_INSTALL_FULL_LIBDIR} -l${library}
-Cflags: -I${include_dir}
+Name: @name@
+Description: Waylib shared compositor framework
+Version: @WAYLIB_VERSION@
+Requires: @depends@
+Libs: -L${libdir} -l@library@
+Cflags: -I${includedir}

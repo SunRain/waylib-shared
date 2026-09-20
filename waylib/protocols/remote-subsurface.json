@@ -1,0 +1,24 @@
+{
+  "implementation": {
+    "repository": "https://github.com/linuxdeepin/treeland",
+    "commit": "fd573cf44fb06ee1eebcdd8c39716d1c797b64d4",
+    "paths": [
+      "waylib/src/server/protocols/wremotesubsurfacemanagerv1.cpp",
+      "waylib/src/server/protocols/wremotesubsurfacemanagerv1.h",
+      "waylib/src/server/kernel/wsubsurface.cpp",
+      "waylib/src/server/kernel/wsubsurface.h",
+      "waylib/src/server/kernel/private/wsubsurface_p.h",
+      "waylib/src/server/kernel/wsurface.cpp",
+      "waylib/src/server/kernel/wsurface.h",
+      "waylib/src/server/kernel/private/wsurface_p.h",
+      "waylib/src/server/qtquick/wsurfaceitem.cpp",
+      "waylib/src/server/qtquick/private/wsurfaceitem_p.h"
+    ]
+  },
+  "protocol": {
+    "repository": "https://github.com/linuxdeepin/treeland-protocols",
+    "commit": "8dc1d1e788dc964cd0f756b4491d0225e70b1598",
+    "path": "xml/treeland-remote-subsurface-unstable-v1.xml"
+  },
+  "notes": "Initial self-contained snapshot: XML is unchanged from the accepted DeckShell copy; the manager implementation is unchanged from the selected Treeland source. Local package and namespace adaptations remain documented in the existing per-repository sync records."
+}

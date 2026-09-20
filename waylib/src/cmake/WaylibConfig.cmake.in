@@ -1,6 +1,7 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
+set(WaylibShared_VERSION "@WAYLIB_VERSION@")
 
 # 支持的组件列表
 set(WaylibShared_KNOWN_COMPONENTS SharedServer)

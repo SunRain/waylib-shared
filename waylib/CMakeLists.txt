@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.21)
 
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../VERSION" WAYLIB_VERSION LIMIT_COUNT 1)
 project(
   Waylib
-  VERSION 0.6.13
+  VERSION ${WAYLIB_VERSION}
   LANGUAGES CXX C)
+
+if(NOT DEFINED WAYLIB_INSTALL_ENABLED)
+  set(WAYLIB_INSTALL_ENABLED ${PROJECT_IS_TOP_LEVEL})
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,6 +33,22 @@ option(WAYLIB_USE_PERCOMPILE_HEADERS "Use precompile headers to build waylib"
 # option() is a no-op for an already-cached variable, so the parent default
 # wins. See the Treeland top-level CMakeLists.txt.
 option(TREELAND_INSTALL_DEV "Install development files (headers, CMake config, pkg-config, .so symlinks)" ON)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/WaylibInstallDirs.cmake")
+
+# 专用协议与实现一同发行；旧缓存不能改变构建输入。
+set(_waylib_remote_subsurface_protocol
+    "${CMAKE_CURRENT_SOURCE_DIR}/protocols/treeland-remote-subsurface-unstable-v1.xml")
+if(DEFINED WAYLIB_TREELAND_PROTOCOLS_DIR)
+  message(WARNING
+    "WAYLIB_TREELAND_PROTOCOLS_DIR is retired and ignored. "
+    "Waylib always uses its bundled remote-subsurface XML; use a fresh build directory.")
+endif()
+if(NOT EXISTS "${_waylib_remote_subsurface_protocol}")
+  message(FATAL_ERROR
+    "Incomplete Waylib source: missing ${_waylib_remote_subsurface_protocol}. "
+    "Restore the bundled XML from the matching source release; no external fallback is used.")
+endif()
 
 find_package(Qt6 COMPONENTS Core Gui Quick REQUIRED)
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.10)

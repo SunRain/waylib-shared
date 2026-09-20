@@ -26,40 +26,10 @@ waylib 是一个 Wayland 合成器开发库，直接基于 [wlroots](https://git
 
 ## 构建
 
-步骤一：编译安装 wlroots
-
-waylib 需要安装开发版本（0.19）的 wlroots, 需要[自行编译安装](https://gitlab.freedesktop.org/wlroots/wlroots#building)， Archlinux 用户可以安装 [wlroots-0.19](https://archlinux.org/packages/extra/x86_64/wlroots0.19/).。
-
-本仓库将 wlroots 源码树 vendored 在 `wlroots/` 目录下（上游源码在 `3rdparty/wlroots/`），通过 CMake 与 waylib 一起构建，无需单独安装 wlroots。
-
-步骤二：安装其他依赖
-
-Debian
-
-````
-# apt install pkg-config qt6-base-private-dev qt6-base-dev-tools qt6-declarative-private-dev wayland-protocols libpixman-1-dev
-````
-
-Archlinux
-
-````
-# pacman -Syu --noconfirm qt6-base qt6-declarative cmake pkgconfig pixman wayland-protocols ninja
-````
-
-NixOS
-
-推荐使用 [nix-direnv](https://github.com/nix-community/nix-direnv) 管理依赖，也可以使用 `nix develop` 命令进入构建环境。
-
-使用 `nix build -v -L` 可以完成打包构建。
-
-步骤三：运行以下命令
-
-```bash
-cmake -B build -DWAYLIB_TREELAND_PROTOCOLS_DIR=/absolute/path/to/DeckShell/protocols/compositor/xml
-cmake --build build
-```
-
-`WAYLIB_TREELAND_PROTOCOLS_DIR` 必须指定与本版本匹配的协议 XML 目录。打包时也可显式设置同名环境变量；不自动查找系统协议安装。
+从外层 `waylib-shared` 仓库根目录构建并安装。完整的[构建说明](../README.zh_CN.md)
+包含配套 native wlroots 子模块、随源码携带的协议 XML、系统依赖、测试与消费步骤。
+无需 DeckShell 协议包或外部 XML 路径。
+本目录负责库实现，不另外维护一条打包流程。
 
 ## 贡献指南
 

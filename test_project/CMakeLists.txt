@@ -1,148 +1,58 @@
 cmake_minimum_required(VERSION 3.21)
-project(WaylibSharedMinimalConsumer LANGUAGES CXX)
+project(WaylibSharedMinimalConsumer LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+# 公共头使用 C++20；仅主 target 的使用要求可以提升这个 C++17 消费者。
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# The core package must remain consumable without Qt Quick Controls 2.
+# 核心开发包不应要求下游安装 Qt Quick Controls 2。
 set(CMAKE_DISABLE_FIND_PACKAGE_Qt6QuickControls2 TRUE)
-find_package(WaylibShared REQUIRED COMPONENTS SharedServer)
-
-get_target_property(
-  _waylibshared_interface_links
-  WaylibShared::SharedServer
-  INTERFACE_LINK_LIBRARIES
-)
-if(NOT "PkgConfig::XCB" IN_LIST _waylibshared_interface_links)
-  message(FATAL_ERROR
-    "WaylibShared::SharedServer must propagate its public XCB dependency")
-endif()
-if(NOT "WaylibShared::waylib-wlroots" IN_LIST _waylibshared_interface_links)
-  message(FATAL_ERROR
-    "WaylibShared::SharedServer must propagate its native wlroots dependency")
-endif()
-unset(_waylibshared_interface_links)
-
-# Derive the installation prefix from the installed CMake package.
-get_filename_component(_waylibshared_prefix "${WaylibShared_DIR}/../../.." ABSOLUTE)
-
-set(_waylibshared_original_pkg_config_path "$ENV{PKG_CONFIG_PATH}")
-set(ENV{PKG_CONFIG_PATH}
-  "${_waylibshared_prefix}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+find_package(WaylibShared 0.7.0 EXACT REQUIRED COMPONENTS SharedServer)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(
-  WAYLIBSHARED_PC
-  REQUIRED
-  IMPORTED_TARGET
-  WaylibSharedServer
-)
-file(STRINGS
-  "${_waylibshared_prefix}/lib/pkgconfig/WaylibSharedServer.pc"
-  _waylibshared_pkgconfig_requires
-  REGEX "^Requires:"
-)
-if(NOT _waylibshared_pkgconfig_requires MATCHES "(^|[, ])xcb([, ]|$)")
-  message(FATAL_ERROR
-    "WaylibSharedServer.pc must declare its public XCB dependency")
-endif()
-unset(_waylibshared_pkgconfig_requires)
-
-foreach(_waylibshared_pkgconfig_name
-        WaylibSharedServer
-        waylib-wlroots)
-  pkg_get_variable(
-    _waylibshared_pkgconfig_dir
-    "${_waylibshared_pkgconfig_name}"
-    pcfiledir
-  )
-  if(NOT _waylibshared_pkgconfig_dir STREQUAL "${_waylibshared_prefix}/lib/pkgconfig")
-    message(FATAL_ERROR
-      "${_waylibshared_pkgconfig_name} must come from the candidate installation")
-  endif()
-  execute_process(
-    COMMAND "${PKG_CONFIG_EXECUTABLE}" --libs-only-L "${_waylibshared_pkgconfig_name}"
-    OUTPUT_VARIABLE _waylibshared_pkgconfig_libs
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    COMMAND_ERROR_IS_FATAL ANY
-  )
-  separate_arguments(
-    _waylibshared_pkgconfig_libs
-    UNIX_COMMAND "${_waylibshared_pkgconfig_libs}"
-  )
-  if(NOT "-L${_waylibshared_prefix}/lib" IN_LIST _waylibshared_pkgconfig_libs)
-    message(FATAL_ERROR
-      "${_waylibshared_pkgconfig_name}.pc must expose its non-system library directory")
-  endif()
-endforeach()
-set(ENV{PKG_CONFIG_PATH} "${_waylibshared_original_pkg_config_path}")
-unset(_waylibshared_original_pkg_config_path)
-unset(_waylibshared_pkgconfig_dir)
-unset(_waylibshared_pkgconfig_libs)
-unset(_waylibshared_pkgconfig_name)
 
 add_executable(waylibshared_minimal_consumer main.cpp)
 target_link_libraries(waylibshared_minimal_consumer PRIVATE WaylibShared::SharedServer)
 
-add_executable(waylibshared_pkgconfig_consumer main.cpp)
-target_link_libraries(
-  waylibshared_pkgconfig_consumer
-  PRIVATE
-    PkgConfig::WAYLIBSHARED_PC
-)
+include(cmake/PkgConfigConsumer.cmake)
 
+add_executable(waylibshared_native_consumer native_test.c)
+target_link_libraries(waylibshared_native_consumer PRIVATE WaylibShared::waylib-wlroots)
+
+# 不链接 Waylib，也不编入默认 import root，避免绕过已安装的 QML plugin。
 add_executable(waylibshared_qml_consumer qml_test.cpp)
-target_link_libraries(waylibshared_qml_consumer PRIVATE WaylibShared::SharedServer)
+target_link_libraries(waylibshared_qml_consumer PRIVATE Qt6::Gui Qt6::Qml Qt6::Quick)
+
+pkg_check_modules(TEST_WAYLAND_SERVER REQUIRED IMPORTED_TARGET wayland-server)
+add_executable(waylibshared_protocol_consumer protocol_test.cpp)
+target_link_libraries(waylibshared_protocol_consumer
+    PRIVATE Qt6::Core PkgConfig::TEST_WAYLAND_SERVER)
+waylib_generate_qtwayland_server_protocol(waylibshared_protocol_consumer
+    PROTOCOL "${WaylibShared_WLROOTS_PROTOCOLS_DIR}/virtual-keyboard-unstable-v1.xml"
+    BASENAME virtual-keyboard-unstable-v1
+    PREFIX zwp_
+    PRIVATE_CODE)
 
 include(CTest)
-
-# 推导 QML import path（优先 KDE 路径 lib/qml，其次 Qt 习惯路径 lib/qt6/qml）
-set(_waylibshared_qml_import_dir "")
-foreach(_candidate
-        "${_waylibshared_prefix}/lib/qml"
-        "${_waylibshared_prefix}/lib/qt6/qml")
-  if(EXISTS "${_candidate}")
-    set(_waylibshared_qml_import_dir "${_candidate}")
-    break()
-  endif()
-endforeach()
-
-# 推导运行时动态库路径（避免测试运行时找不到 /lib 下的依赖）
-set(_waylibshared_ld_library_dir "")
-foreach(_candidate
-        "${_waylibshared_prefix}/lib"
-        "${_waylibshared_prefix}/lib64")
-  if(EXISTS "${_candidate}")
-    set(_waylibshared_ld_library_dir "${_candidate}")
-    break()
-  endif()
-endforeach()
-
-target_compile_definitions(waylibshared_qml_consumer
-  PRIVATE
-    WAYLIBSHARED_TEST_DEFAULT_QML_IMPORT_PATH="${_waylibshared_qml_import_dir}"
-)
-
 if(BUILD_TESTING)
-  add_test(NAME waylibshared_link_test COMMAND waylibshared_minimal_consumer)
-  add_test(NAME waylibshared_pkgconfig_link_test
-           COMMAND waylibshared_pkgconfig_consumer)
-  add_test(NAME waylibshared_qml_import_test COMMAND waylibshared_qml_consumer)
+    # 清理发生在启动前；在 main() 中 unset 已无法阻止 loader 预加载旧库。
+    function(waylibshared_add_runtime_test name target)
+        add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}" -E env
+            --unset=LD_LIBRARY_PATH --unset=LD_PRELOAD --unset=LD_AUDIT
+            --unset=QML_IMPORT_PATH --unset=QML2_IMPORT_PATH
+            --unset=QT_PLUGIN_PATH --unset=QT_QPA_PLATFORM_PLUGIN_PATH
+            ${ARGN} "$<TARGET_FILE:${target}>")
+        set_tests_properties("${name}" PROPERTIES TIMEOUT 15)
+    endfunction()
 
-  if(_waylibshared_ld_library_dir)
-    set_tests_properties(
-      waylibshared_link_test
-      waylibshared_pkgconfig_link_test
-      PROPERTIES
-      ENVIRONMENT "LD_LIBRARY_PATH=${_waylibshared_ld_library_dir}"
-    )
-  endif()
-
-  set_tests_properties(waylibshared_qml_import_test PROPERTIES
-    ENVIRONMENT
-      "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${_waylibshared_qml_import_dir};LD_LIBRARY_PATH=${_waylibshared_ld_library_dir}"
-  )
+    waylibshared_add_runtime_test(waylibshared_link_test waylibshared_minimal_consumer)
+    waylibshared_add_runtime_test(waylibshared_pkgconfig_link_test
+        waylibshared_pkgconfig_consumer)
+    waylibshared_add_runtime_test(waylibshared_native_link_test waylibshared_native_consumer)
+    waylibshared_add_runtime_test(waylibshared_protocol_generation_test
+        waylibshared_protocol_consumer)
+    waylibshared_add_runtime_test(waylibshared_qml_import_test waylibshared_qml_consumer
+        "QT_QPA_PLATFORM=offscreen" "QML_IMPORT_PATH=${WaylibShared_QML_IMPORT_DIR}")
+    include(cmake/VersionTests.cmake)
 endif()
-
-unset(_waylibshared_prefix)
-unset(_waylibshared_qml_import_dir)
-unset(_waylibshared_ld_library_dir)

@@ -1,0 +1,262 @@
+# SPDX-License-Identifier: Apache-2.0 OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+set(SOURCES
+    wayliblogging.cpp
+
+    kernel/wbackend.cpp
+    kernel/wcursor.cpp
+    kernel/winputdevice.cpp
+    kernel/woutput.cpp
+    kernel/wseat.cpp
+    kernel/wevent.cpp
+    kernel/wserver.cpp
+    kernel/wsurface.cpp
+    kernel/wsubsurface.cpp
+    kernel/wtoplevelsurface.cpp
+    kernel/wwaylandresource.cpp
+
+    kernel/wtypes.cpp
+
+    kernel/woutputlayout.cpp
+    kernel/wxcursorimage.cpp
+    kernel/wglobal.cpp
+    utils/wscoplistener.cpp
+    kernel/wsocket.cpp
+
+    qtquick/wsurfaceitem.cpp
+    qtquick/woutputhelper.cpp
+    qtquick/woutputrenderwindow.cpp
+    qtquick/woutputviewport.cpp
+    qtquick/woutputitem.cpp
+    qtquick/woutputlayoutitem.cpp
+    qtquick/wquickoutputlayout.cpp
+    qtquick/wquickcursor.cpp
+    qtquick/wquickobserver.cpp
+    qtquick/weventjunkman.cpp
+    qtquick/wrenderhelper.cpp
+    qtquick/wquicktextureproxy.cpp
+    qtquick/woutputlayer.cpp
+    qtquick/wrenderbufferblitter.cpp
+    qtquick/wxdgtoplevelsurfaceitem.cpp
+    qtquick/wxdgpopupsurfaceitem.cpp
+    qtquick/wlayersurfaceitem.cpp
+    qtquick/wxwaylandsurfaceitem.cpp
+    qtquick/wqmlcreator.cpp
+    qtquick/winputpopupsurfaceitem.cpp
+    qtquick/wsgtextureprovider.cpp
+    qtquick/wtextureproviderprovider.cpp
+    qtquick/wbufferitem.cpp
+
+    qtquick/private/wquickcoordmapper.cpp
+    qtquick/private/wquicksocketattached.cpp
+    qtquick/private/wqmlhelper.cpp
+    qtquick/private/wbufferrenderer.cpp
+    qtquick/private/wrenderbuffernode.cpp
+
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/text-input-unstable-v1-protocol.c
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/text-input-unstable-v2-protocol.c
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/xdg-output-unstable-v1-protocol.c
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/security-context-v1-protocol.c
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/xdg-shell-protocol.c
+
+    utils/wtools.cpp
+    utils/wthreadutils.cpp
+    utils/wimagebuffer.cpp
+    utils/wcursorimage.cpp
+    utils/wextimagecapturesourcev1impl.cpp
+    utils/wbufferdumper.cpp
+
+    platformplugin/qwlrootsintegration.cpp
+    platformplugin/qwlrootscreen.cpp
+    platformplugin/qwlrootswindow.cpp
+    platformplugin/qwlrootscursor.cpp
+    platformplugin/types.cpp
+    protocols/wxdgshell.cpp
+    protocols/wxdgsurface.cpp
+    protocols/wxdgtoplevelsurface.cpp
+    protocols/wxdgtopleveltagmanager.cpp
+    protocols/wxdgpopupsurface.cpp
+
+    protocols/wxwayland.cpp
+    protocols/wxwaylandsurface.cpp
+    protocols/wlayersurface.cpp
+    protocols/wforeigntoplevelv1.cpp
+    protocols/wxdgoutput.cpp
+    protocols/wxdgdecorationmanager.cpp
+    protocols/wlayershell.cpp
+    protocols/winputmethodhelper.cpp
+    protocols/winputpopupsurface.cpp
+    protocols/private/winputmethodv2.cpp
+    protocols/private/wtextinputv1.cpp
+    protocols/private/wtextinputv2.cpp
+    protocols/private/wtextinputv3.cpp
+    protocols/private/wvirtualkeyboardv1.cpp
+    protocols/wcursorshapemanagerv1.cpp
+    protocols/wpointerconstraintsv1.cpp
+    protocols/wrelativepointermanagerv1.cpp
+    protocols/woutputmanagerv1.cpp
+    protocols/wextforeigntoplevellistv1.cpp
+    protocols/wxdgdialogmanagerv1.cpp
+    protocols/wsecuritycontextmanager.cpp
+    protocols/wsessionlockmanager.cpp
+    protocols/wsessionlock.cpp
+    protocols/wsessionlocksurface.cpp
+    protocols/wremotesubsurfacemanagerv1.cpp
+)
+
+set(HEADERS
+    wayliblogging.h
+
+    kernel/wglobal.h
+    kernel/wwaylandresource.h
+    kernel/wlr_all.h
+    kernel/wlr_fwd.h
+    kernel/wpointer.h
+    utils/wscoplistener.h
+    utils/wscopedvalue.h
+    utils/wlogging.h
+    kernel/wbackend.h
+    kernel/wcursor.h
+    kernel/winputdevice.h
+    kernel/woutput.h
+    kernel/wseat.h
+    kernel/wevent.h
+    kernel/wserver.h
+    kernel/wsurface.h
+    kernel/wsubsurface.h
+    kernel/wtypes.h
+    kernel/woutputlayout.h
+    kernel/wxcursorimage.h
+    kernel/wsocket.h
+    kernel/wtoplevelsurface.h
+
+    kernel/WOutput
+    kernel/WServer
+    kernel/WServerInterface
+    kernel/WBackend
+    kernel/WCursor
+    kernel/WInputDevice
+    kernel/WSeat
+    kernel/WEvent
+    kernel/WInputEvent
+    kernel/WSurface
+    kernel/WSubsurface
+
+    qtquick/wsurfaceitem.h
+    qtquick/WSurfaceItem
+    qtquick/woutputhelper.h
+    qtquick/woutputlayoutitem.h
+    qtquick/wquickoutputlayout.h
+    qtquick/woutputrenderwindow.h
+    qtquick/woutputviewport.h
+    qtquick/woutputitem.h
+    qtquick/wquickcursor.h
+    qtquick/wquickobserver.h
+    qtquick/weventjunkman.h
+    qtquick/wrenderhelper.h
+    qtquick/wquicktextureproxy.h
+    qtquick/woutputlayer.h
+    qtquick/wrenderbufferblitter.h
+    qtquick/wxdgtoplevelsurfaceitem.h
+    qtquick/wxdgpopupsurfaceitem.h
+    qtquick/wlayersurfaceitem.h
+    qtquick/wxwaylandsurfaceitem.h
+    qtquick/winputpopupsurfaceitem.h
+    qtquick/wqmlcreator.h
+    qtquick/wsgtextureprovider.h
+    qtquick/wtextureproviderprovider.h
+    qtquick/wbufferitem.h
+
+    utils/wtools.h
+    utils/wthreadutils.h
+    utils/WThreadUtils
+    utils/wimagebuffer.h
+    utils/wcursorimage.h
+    utils/WCursorImage
+    utils/wextimagecapturesourcev1impl.h
+    utils/wbufferdumper.h
+    utils/WBufferDumper
+    utils/wcontainerof.h
+    utils/WContainerOf
+    protocols/wxdgshell.h
+    protocols/WXdgShell
+    protocols/wxdgsurface.h
+    protocols/WXdgSurface
+    protocols/wxdgtoplevelsurface.h
+    protocols/wxdgtopleveltagmanager.h
+    protocols/wxdgpopupsurface.h
+    protocols/wlayersurface.h
+    protocols/wxdgdecorationmanager.h
+    protocols/WXdgDecorationManager
+    protocols/WLayerSurface
+    protocols/wforeigntoplevelv1.h
+    protocols/WForeignToplevel
+    protocols/wxdgoutput.h
+    protocols/WXdgOutput
+    protocols/WInputMethodHelper
+    protocols/winputmethodhelper.h
+    protocols/winputpopupsurface.h
+    protocols/WInputPopupSurface
+    protocols/wcursorshapemanagerv1.h
+    protocols/WCursorShapeManagerV1
+    protocols/wpointerconstraintsv1.h
+    protocols/WPointerConstraintsV1
+    protocols/wremotesubsurfacemanagerv1.h
+    protocols/wrelativepointermanagerv1.h
+    protocols/WRelativePointerManagerV1
+    protocols/woutputmanagerv1.h
+    protocols/WOutputManagerV1
+    protocols/wlayershell.h
+    protocols/WLayerShell
+    protocols/wxwayland.h
+    protocols/WXWayland
+    protocols/wxwaylandsurface.h
+    protocols/WXWaylandSurface
+    protocols/wextforeigntoplevellistv1.h
+    protocols/wxdgdialogmanagerv1.h
+    protocols/wsecuritycontextmanager.h
+    protocols/wsessionlockmanager.h
+    protocols/WSessionLockManager
+    protocols/wsessionlock.h
+    protocols/WSessionLock
+    protocols/wsessionlocksurface.h
+    protocols/WSessionLockSurface
+)
+
+set(PRIVATE_HEADERS
+    platformplugin/qwlrootsintegration.h
+    platformplugin/qwlrootscreen.h
+    platformplugin/qwlrootswindow.h
+    platformplugin/qwlrootscursor.h
+    platformplugin/types.h
+    kernel/private/wglobal_p.h
+    kernel/private/wwaylandresource_p.h
+    kernel/private/wsurface_p.h
+    kernel/private/wsubsurface_p.h
+    kernel/private/wprivateaccessor_p.h
+    qtquick/private/woutputviewport_p.h
+    qtquick/private/wquickcoordmapper_p.h
+    qtquick/private/woutputitem_p.h
+    qtquick/private/wquicksocketattached_p.h
+    qtquick/private/wqmlcreator_p.h
+    qtquick/private/wqmlhelper_p.h
+    qtquick/private/wquicktextureproxy_p.h
+    qtquick/private/wbufferrenderer_p.h
+    qtquick/private/wrenderbuffernode_p.h
+    qtquick/private/wsurfaceitem_p.h
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/text-input-unstable-v1-protocol.h
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/text-input-unstable-v2-protocol.h
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/xdg-output-unstable-v1-protocol.h
+    ${WAYLAND_PROTOCOLS_OUTPUTDIR}/xdg-shell-protocol.h
+
+    protocols/private/winputmethodv2_p.h
+    protocols/private/wtextinput_p.h
+    protocols/private/wtextinputv1_p.h
+    protocols/private/wtextinputv2_p.h
+    protocols/private/wtextinputv3_p.h
+    protocols/private/wvirtualkeyboardv1_p.h
+)
+
+if(NOT DISABLE_XWAYLAND)
+  list(APPEND SOURCES protocols/wxwayland.cpp protocols/wxwaylandsurface.cpp)
+endif()
