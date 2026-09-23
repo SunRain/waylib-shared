@@ -27,7 +27,7 @@ waylib 是一个 Wayland 合成器开发库，直接基于 [wlroots](https://git
 ## 构建
 
 从外层 `waylib-shared` 仓库根目录构建并安装。完整的[构建说明](../README.zh_CN.md)
-包含配套 native wlroots 子模块、随源码携带的协议 XML、系统依赖、测试与消费步骤。
+包含配套 native wlroots 0.20 子模块、随源码携带的协议 XML、系统依赖、测试与消费步骤。
 无需 DeckShell 协议包或外部 XML 路径。
 本目录负责库实现，不另外维护一条打包流程。
 

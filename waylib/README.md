@@ -27,7 +27,7 @@ Based on the above features, compositor developers need only focus on the busine
 ## Building
 
 Build and install from the containing `waylib-shared` repository root. Its
-[build guide](../README.md) specifies the matching native wlroots submodule,
+[build guide](../README.md) specifies the matching native wlroots 0.20 submodule,
 bundled protocol XML, system dependencies, tests and consumer setup. No DeckShell
 protocol package or external XML path is needed.
 This directory implements the library; it is not a second packaging workflow.
