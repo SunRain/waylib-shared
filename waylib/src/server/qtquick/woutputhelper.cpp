@@ -89,7 +89,8 @@ public:
     QList<CommitJobEntry> afterCommitJobs;
 
     // External state (mode/scale/transform/enabled) separate from internal (buffer/damage)
-    WOutputHelper::ExtraState extraState;
+    // 未提交外部状态时不能进入 state-only 路径，否则首帧 buffer 会被丢弃。
+    WOutputHelper::ExtraState extraState = nullptr;
 };
 
 void WOutputHelperPrivate::setContentIsDirty(bool newValue)
