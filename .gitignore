@@ -94,3 +94,4 @@ obj-*-linux-gnu/
 # AI/workflow artifacts
 .spec-workflow/
 helloagents/
+.helloagents/
