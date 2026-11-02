@@ -231,3 +231,16 @@ target_include_directories(${TARGET}
 )
 
 include(cmake/WaylibInstall.cmake)
+
+# Installed consumers explicitly assemble the input-method protocol bundle.
+if(WAYLIB_INSTALL_ENABLED AND TREELAND_INSTALL_DEV)
+    install(FILES
+        protocols/private/winputmethodv2_p.h
+        protocols/private/wtextinput_p.h
+        protocols/private/wtextinputv1_p.h
+        protocols/private/wtextinputv2_p.h
+        protocols/private/wtextinputv3_p.h
+        protocols/private/wvirtualkeyboardv1_p.h
+        DESTINATION ${WAYLIB_INCLUDE_INSTALL_DIR}
+    )
+endif()
