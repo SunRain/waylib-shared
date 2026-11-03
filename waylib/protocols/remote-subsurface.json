@@ -1,7 +1,7 @@
 {
   "implementation": {
     "repository": "https://github.com/linuxdeepin/treeland",
-    "commit": "1f8c2a658b4b4e868e0650f9890c5e752fd1b839",
+    "commit": "77f885c8dbeb0e0e0bebdafdee02eadb1d150439",
     "paths": [
       "waylib/src/server/kernel/private/wsubsurface_p.h",
       "waylib/src/server/kernel/private/wsurface_p.h",
