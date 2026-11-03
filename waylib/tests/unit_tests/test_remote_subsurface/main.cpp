@@ -3,6 +3,11 @@
 
 #include <WSurface>
 #include <WSubsurface>
+#include <wscoplistener.h>
+
+extern "C" {
+#include <wlr/types/wlr_compositor.h>
+}
 
 #include <QTest>
 #include <memory>
@@ -17,8 +22,12 @@ void invalidSibling(void *data, treeland_remote_subsurface_v1 *, const char *tok
 
 void destroyExport(Exported &surface)
 {
-    treeland_exported_surface_v1_destroy(surface.object);
-    wl_surface_destroy(surface.surface);
+    if (surface.object)
+        treeland_exported_surface_v1_destroy(surface.object);
+    if (surface.surface)
+        wl_surface_destroy(surface.surface);
+    surface.object = nullptr;
+    surface.surface = nullptr;
 }
 }
 
@@ -70,6 +79,170 @@ private Q_SLOTS:
         wl_surface_destroy(parent.surface);
         destroyExport(child);
         QVERIFY(client.roundtrip());
+    }
+
+    void exportRevocationPreservesRelation_data()
+    {
+        QTest::addColumn<bool>("revokeChild");
+        QTest::newRow("parent-export") << false;
+        QTest::newRow("child-export") << true;
+    }
+
+    void exportRevocationPreservesRelation()
+    {
+        QFETCH(bool, revokeChild);
+        ServerFixture fixture;
+        Client parentClient(fixture.server.handle()), childClient(fixture.server.handle());
+        QVERIFY(parentClient.roundtrip());
+        QVERIFY(childClient.roundtrip());
+        Exported parent, child;
+        parentClient.exportSurface(parent);
+        childClient.exportSurface(child);
+        QVERIFY(parentClient.roundtrip());
+        QVERIFY(childClient.roundtrip());
+        auto *parentHandle = fixture.nativeSurface(parentClient, parent.surface);
+        QVERIFY(parentHandle);
+        auto parentSurface = std::make_unique<WSurface>(parentHandle);
+        auto *remote = treeland_exported_surface_v1_create_remote_subsurface(
+            child.object, parent.token.toUtf8().constData());
+        QVERIFY(childClient.roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 1);
+        auto *subsurface = parentSurface->subsurfaces().front();
+        QVERIFY(parentClient.commitBuffer(parent.surface));
+        QVERIFY(childClient.commitBuffer(child.surface));
+        parentSurface->map();
+        QVERIFY(subsurface->isMapped());
+        const auto remoteId = wl_proxy_get_id(reinterpret_cast<wl_proxy *>(remote));
+
+        auto &revoked = revokeChild ? child : parent;
+        treeland_exported_surface_v1_destroy(revoked.object);
+        revoked.object = nullptr;
+        QVERIFY((revokeChild ? childClient : parentClient).roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 1);
+        QCOMPARE(parentSurface->subsurfaces().front(), subsurface);
+        QVERIFY(subsurface->isMapped());
+        QVERIFY(wl_client_get_object(childClient.serverClient, remoteId));
+        treeland_remote_subsurface_v1_set_position(remote, 5, -7);
+        treeland_remote_subsurface_v1_place_below(remote, "");
+        QVERIFY(childClient.roundtrip());
+        wl_surface_commit(parent.surface);
+        QVERIFY(parentClient.roundtrip());
+        QCOMPARE(subsurface->position(), QPointF(5, -7));
+        QCOMPARE(parentSurface->subsurfacesBelow().size(), 1);
+        parentSurface->unmap();
+        QVERIFY(!subsurface->isMapped());
+        parentSurface->map();
+        QVERIFY(subsurface->isMapped());
+        treeland_remote_subsurface_v1_destroy(remote);
+        QVERIFY(childClient.roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 0);
+        parentSurface.reset();
+        destroyExport(child);
+        destroyExport(parent);
+        QVERIFY(childClient.roundtrip());
+        QVERIFY(parentClient.roundtrip());
+    }
+
+    void parentDestroyedBeforeRemote_data()
+    {
+        QTest::addColumn<bool>("disconnectParent");
+        QTest::newRow("surface-destroyed") << false;
+        QTest::newRow("client-disconnected") << true;
+    }
+
+    void parentDestroyedBeforeRemote()
+    {
+        QFETCH(bool, disconnectParent);
+        ServerFixture fixture;
+        auto parentClient = std::make_unique<Client>(fixture.server.handle());
+        Client childClient(fixture.server.handle());
+        QVERIFY(parentClient->roundtrip());
+        QVERIFY(childClient.roundtrip());
+        Exported parent, child;
+        parentClient->exportSurface(parent);
+        childClient.exportSurface(child);
+        QVERIFY(parentClient->roundtrip());
+        QVERIFY(childClient.roundtrip());
+        auto *parentHandle = fixture.nativeSurface(*parentClient, parent.surface);
+        auto *childHandle = fixture.nativeSurface(childClient, child.surface);
+        QVERIFY(parentHandle && childHandle);
+        auto parentSurface = std::make_unique<WSurface>(parentHandle);
+        WScopedListener parentDestroyed;
+        parentDestroyed.init(&parentHandle->events.destroy, [&] {
+            parentDestroyed.disconnect();
+            parentSurface.reset();
+        });
+        auto *remote = treeland_exported_surface_v1_create_remote_subsurface(
+            child.object, parent.token.toUtf8().constData());
+        QVERIFY(childClient.roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 1);
+        QVERIFY(parentClient->commitBuffer(parent.surface));
+        QVERIFY(childClient.commitBuffer(child.surface));
+        parentSurface->map();
+        QVERIFY(childHandle->mapped);
+        const auto remoteId = wl_proxy_get_id(reinterpret_cast<wl_proxy *>(remote));
+        treeland_exported_surface_v1_destroy(parent.object);
+        QVERIFY(parentClient->roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 1);
+
+        if (disconnectParent) {
+            parentClient.reset();
+        } else {
+            wl_surface_destroy(parent.surface);
+            QVERIFY(parentClient->roundtrip());
+        }
+        QVERIFY(!parentSurface);
+        QVERIFY(!childHandle->mapped);
+        QVERIFY(wl_client_get_object(childClient.serverClient, remoteId));
+        treeland_remote_subsurface_v1_set_position(remote, 5, -7);
+        treeland_remote_subsurface_v1_place_above(remote, "");
+        treeland_remote_subsurface_v1_place_below(remote, "");
+        QVERIFY(childClient.commitBuffer(child.surface));
+        QVERIFY(!childHandle->mapped);
+        QCOMPARE(wl_display_get_error(childClient.display), 0);
+        treeland_remote_subsurface_v1_destroy(remote);
+        QVERIFY(childClient.roundtrip());
+        QVERIFY(!wl_client_get_object(childClient.serverClient, remoteId));
+        destroyExport(child);
+        QVERIFY(childClient.roundtrip());
+    }
+
+    void childDisconnectedAfterRevocation()
+    {
+        ServerFixture fixture;
+        Client parentClient(fixture.server.handle());
+        auto childClient = std::make_unique<Client>(fixture.server.handle());
+        QVERIFY(parentClient.roundtrip());
+        QVERIFY(childClient->roundtrip());
+        Exported parent, child;
+        parentClient.exportSurface(parent);
+        childClient->exportSurface(child);
+        QVERIFY(parentClient.roundtrip());
+        QVERIFY(childClient->roundtrip());
+        auto *parentHandle = fixture.nativeSurface(parentClient, parent.surface);
+        QVERIFY(parentHandle);
+        auto parentSurface = std::make_unique<WSurface>(parentHandle);
+        treeland_exported_surface_v1_create_remote_subsurface(
+            child.object, parent.token.toUtf8().constData());
+        QVERIFY(childClient->roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 1);
+        QVERIFY(parentClient.commitBuffer(parent.surface));
+        QVERIFY(childClient->commitBuffer(child.surface));
+        parentSurface->map();
+        QVERIFY(parentSurface->subsurfaces().front()->isMapped());
+        treeland_exported_surface_v1_destroy(parent.object);
+        parent.object = nullptr;
+        QVERIFY(parentClient.roundtrip());
+        treeland_exported_surface_v1_destroy(child.object);
+        child.object = nullptr;
+        QVERIFY(childClient->roundtrip());
+        QCOMPARE(parentSurface->subsurfaces().size(), 1);
+        childClient.reset();
+        QCOMPARE(parentSurface->subsurfaces().size(), 0);
+        QCOMPARE(wl_display_get_error(parentClient.display), 0);
+        parentSurface.reset();
+        destroyExport(parent);
+        QVERIFY(parentClient.roundtrip());
     }
 
     void relationAndStacking()

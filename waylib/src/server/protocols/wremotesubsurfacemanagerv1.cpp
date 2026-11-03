@@ -17,6 +17,7 @@ extern "C" {
 
 #include <QHash>
 #include <QPointer>
+#include <QSet>
 #include <QUuid>
 
 WAYLIB_SERVER_BEGIN_NAMESPACE
@@ -168,12 +169,15 @@ public:
     void invalidate()
     {
         m_manager = nullptr;
-        // The remote object now outlives the parent exported surface. Detach
-        // the parent map/unmap listeners, otherwise wlroots asserts that
+        // A native surface is gone while the remote resource remains alive.
+        // Detach the parent map/unmap listeners, otherwise wlroots asserts that
         // events.map / events.unmap are empty when the parent wlr_surface is
         // destroyed (see surface_handle_resource_destroy in wlr_compositor.c).
         m_parentMapListener.disconnect();
         m_parentUnmapListener.disconnect();
+        m_child = nullptr;
+        m_parent = nullptr;
+        m_subsurface = nullptr;
     }
 
     void ensureSubsurface();
@@ -246,8 +250,8 @@ public:
     {
         if (!wlrSurface)
             return false;
-        for (auto it = m_tokens.constBegin(); it != m_tokens.constEnd(); ++it) {
-            if (it.value()->surface() == wlrSurface)
+        for (auto *context : m_surfaces) {
+            if (context->surface() == wlrSurface)
                 return true;
         }
         return false;
@@ -256,10 +260,11 @@ public:
     // Registry
     void registerExported(ExportedSurfaceContext *ctx)
     {
+        m_surfaces.insert(ctx);
         m_tokens.insert(ctx->token(), ctx);
     }
 
-    void unregisterExported(ExportedSurfaceContext *ctx)
+    void revokeExportedToken(ExportedSurfaceContext *ctx)
     {
         m_tokens.remove(ctx->token());
     }
@@ -459,7 +464,8 @@ public:
             remote->invalidate();
         }
 
-        unregisterExported(ctx);
+        revokeExportedToken(ctx);
+        m_surfaces.remove(ctx);
     }
 
 protected:
@@ -504,6 +510,7 @@ protected:
 
 private:
     QHash<QString, ExportedSurfaceContext *> m_tokens;
+    QSet<ExportedSurfaceContext *> m_surfaces;
 };
 
 // ---------------------------------------------------------------------------
@@ -512,25 +519,19 @@ private:
 
 void ExportedSurfaceContext::handleSurfaceDestroy()
 {
-    if (!m_manager || m_manager->findExportedByToken(m_token) != this)
-        return;
-
-    if (auto *res = resource()) {
-        if (res->handle) {
-            wl_resource_destroy(res->handle);
-            return;
-        }
-    }
-    if (m_manager)
-        m_manager->cleanupExportedContext(this);
+    m_surfaceDestroyListener.disconnect();
+    if (auto *res = resource())
+        wl_resource_destroy(res->handle);
+    m_manager->cleanupExportedContext(this);
+    m_surface = nullptr;
     delete this;
 }
 
 void ExportedSurfaceContext::destroy_resource(Resource *)
 {
-    if (m_manager)
-        m_manager->cleanupExportedContext(this);
-    delete this;
+    // Revocation removes token lookup only. Existing relationships still
+    // need this context until the underlying wl_surface is destroyed.
+    m_manager->revokeExportedToken(this);
 }
 
 void ExportedSurfaceContext::create_remote_subsurface(Resource *resource,
@@ -773,8 +774,8 @@ void RemoteSubsurfaceContext::destroy_resource(Resource *)
     if (m_manager) {
         cascadeUnmap();
         // This is the direct role-object teardown path. Exported-surface
-        // cleanup may also reach this object, but it invalidates m_manager
-        // before destroying the resource so this detach only runs once.
+        // cleanup may already have detached this relationship and cleared
+        // m_manager while leaving the remote resource for its client to destroy.
         m_manager->removeChildFromParent(this);
     }
     delete this;

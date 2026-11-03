@@ -1,7 +1,7 @@
 {
   "implementation": {
     "repository": "https://github.com/linuxdeepin/treeland",
-    "commit": "f342a5b6debd028ed9bc4bc3e806118efbcae8f2",
+    "commit": "1f8c2a658b4b4e868e0650f9890c5e752fd1b839",
     "paths": [
       "waylib/src/server/kernel/private/wsubsurface_p.h",
       "waylib/src/server/kernel/private/wsurface_p.h",
@@ -17,7 +17,7 @@
   },
   "protocol": {
     "repository": "https://github.com/linuxdeepin/treeland-protocols",
-    "commit": "49e985e0fb0b55fd2299349f08bac14c4e09f2b3",
+    "commit": "578263755cb80b56f2e13fde34da1c294418e608",
     "path": "wine/treeland-remote-subsurface-unstable-v1.xml"
   },
   "notes": "Paired through the unified sync workflow; see its protocol review and validation records."

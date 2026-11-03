@@ -32,12 +32,15 @@ struct Client
     bool roundtrip();
     /// 导出客户端 surface，并把协议事件写入调用方持有的状态。
     void exportSurface(Exported &result);
+    /// 通过 wl_shm 提交真实缓冲区并完成往返，供映射生命周期断言使用。
+    bool commitBuffer(wl_surface *surface);
 
     wl_display *serverDisplay = nullptr;
     wl_display *display = nullptr;
     wl_client *serverClient = nullptr;
     wl_registry *registry = nullptr;
     wl_compositor *compositor = nullptr;
+    wl_shm *shm = nullptr;
     treeland_remote_subsurface_manager_v1 *manager = nullptr;
     uint32_t managerVersion = 0;
     bool sawLegacyManager = false;

@@ -4,25 +4,34 @@
 #include <wremotesubsurfacemanagerv1.h>
 
 #include <QElapsedTimer>
+#include <QTemporaryFile>
 
 #include <cerrno>
 #include <cstring>
 #include <poll.h>
+#include <drm_fourcc.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
 extern "C" {
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_shm.h>
 }
 
 WAYLIB_SERVER_USE_NAMESPACE
 
 namespace {
+void shmFormat(void *, wl_shm *, uint32_t) {}
+
 void registryGlobal(void *data, wl_registry *registry, uint32_t name, const char *interface, uint32_t version)
 {
     auto *client = static_cast<Client *>(data);
     if (std::strcmp(interface, "wl_compositor") == 0) {
         client->compositor = static_cast<wl_compositor *>(wl_registry_bind(registry, name, &wl_compositor_interface, 4));
+    } else if (std::strcmp(interface, "wl_shm") == 0) {
+        client->shm = static_cast<wl_shm *>(wl_registry_bind(registry, name, &wl_shm_interface, 1));
+        static const wl_shm_listener listener = {shmFormat};
+        wl_shm_add_listener(client->shm, &listener, client);
     } else if (std::strcmp(interface, "treeland_subsurface_manager_v1") == 0) {
         client->sawLegacyManager = true;
     } else if (std::strcmp(interface, "treeland_remote_subsurface_manager_v1") == 0) {
@@ -85,6 +94,8 @@ Client::~Client()
         treeland_remote_subsurface_manager_v1_destroy(manager);
     if (compositor)
         wl_compositor_destroy(compositor);
+    if (shm)
+        wl_shm_destroy(shm);
     if (registry)
         wl_registry_destroy(registry);
     if (display) {
@@ -131,9 +142,32 @@ void Client::exportSurface(Exported &result)
     treeland_exported_surface_v1_add_listener(result.object, &listener, &result);
 }
 
+bool Client::commitBuffer(wl_surface *surface)
+{
+    if (!shm || !surface) {
+        error = QStringLiteral("wl_shm or wl_surface is unavailable");
+        return false;
+    }
+    QTemporaryFile storage;
+    if (!storage.open() || !storage.resize(4)) {
+        error = storage.errorString();
+        return false;
+    }
+    auto *pool = wl_shm_create_pool(shm, storage.handle(), 4);
+    auto *buffer = wl_shm_pool_create_buffer(pool, 0, 1, 1, 4, WL_SHM_FORMAT_ARGB8888);
+    wl_surface_attach(surface, buffer, 0, 0);
+    wl_surface_damage(surface, 0, 0, 1, 1);
+    wl_surface_commit(surface);
+    wl_buffer_destroy(buffer);
+    wl_shm_pool_destroy(pool);
+    return roundtrip();
+}
+
 ServerFixture::ServerFixture()
 {
     wlr_compositor_create(server.handle(), 6, nullptr);
+    const uint32_t formats[] = {DRM_FORMAT_ARGB8888, DRM_FORMAT_XRGB8888};
+    wlr_shm_create(server.handle(), 1, formats, 2);
     server.attach<WRemoteSubsurfaceManagerV1>();
     server.start();
 }
