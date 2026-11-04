@@ -117,7 +117,25 @@ list(APPEND HEADERS
 )
 list(APPEND PRIVATE_HEADERS protocols/private/wsecuritycontextmanager_p.h)
 
+if(DISABLE_XWAYLAND)
+    list(REMOVE_ITEM SOURCES
+        protocols/wxwayland.cpp
+        protocols/wxwaylandsurface.cpp
+        qtquick/wxwaylandsurfaceitem.cpp
+    )
+    list(REMOVE_ITEM HEADERS
+        protocols/wxwayland.h
+        protocols/WXWayland
+        protocols/wxwaylandsurface.h
+        protocols/WXWaylandSurface
+        qtquick/wxwaylandsurfaceitem.h
+    )
+endif()
+
 add_library(${TARGET} SHARED ${SOURCES})
+target_compile_definitions(${TARGET} PUBLIC
+    $<$<BOOL:${DISABLE_XWAYLAND}>:DISABLE_XWAYLAND>
+)
 add_library(WaylibShared::SharedServer ALIAS ${TARGET})
 
 waylib_generate_qtwayland_server_protocol(${TARGET}
