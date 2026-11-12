@@ -54,6 +54,9 @@ bool WServerInterface::ownsClient(WClient *client) const
     if (!ownsSocket())
         return true;
 
+    if (!client)
+        return false;
+
     for (auto *socket = client->socket(); socket; socket = socket->parentSocket()) {
         if (socket == m_ownsSocket.data())
             return true;
